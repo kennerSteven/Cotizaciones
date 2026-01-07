@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import html2pdf from "html2pdf.js";
 
+import img from "../Table/img.jpeg";
 type Item = {
   cantidad: number | "";
   unidad: "Unid" | "ml" | "l";
@@ -50,13 +51,21 @@ export default function Cotizacion() {
     setSections(copy);
   }
 
-  function updateItem(s: number, i: number, field: keyof Item, value: any) {
+  function updateItem<K extends keyof Item>(
+    s: number,
+    i: number,
+    field: K,
+    value: Item[K] | string
+  ) {
     const copy = [...sections];
+    const item = copy[s].items[i];
+
     if ((field === "cantidad" || field === "valorUnitario") && value !== "") {
-      copy[s].items[i][field] = parseFloat(value);
+      item[field] = Number(value) as Item[K];
     } else {
-      copy[s].items[i][field] = value;
+      item[field] = value as Item[K];
     }
+
     setSections(copy);
   }
 
@@ -99,20 +108,33 @@ export default function Cotizacion() {
     const opt = {
       margin: [10, 10],
       filename: "cotizacion.pdf",
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 3, useCORS: true, logging: false },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-    };
+      image: {
+        type: "jpeg",
+        quality: 0.98,
+      },
+      html2canvas: {
+        scale: 3,
+        useCORS: true,
+        logging: false,
+      },
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+      },
+      pagebreak: {
+        mode: ["avoid-all", "css", "legacy"],
+      },
+    } as const;
 
-    html2pdf().set(opt).from(element).save();
+    (html2pdf() as any).set(opt).from(element).save();
   };
 
   return (
-    <div className="container my-5">
-      <div className="no-pdf d-flex justify-content-center mb-4">
+    <div className=" ">
+      <div className="no-pdf d-flex justify-content-center w-100 bg-white shadow-sm py-2  ">
         <button className="btn btn-danger btn-lg shadow" onClick={generarPDF}>
-          📄 Generar PDF Perfecto
+          Generar PDF
         </button>
       </div>
 
@@ -123,13 +145,8 @@ export default function Cotizacion() {
       >
         <div className="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4">
           <div>
-            <h1
-              className="fw-bold mb-0"
-              style={{ color: "#c32121", fontSize: "3rem" }}
-            >
-              COTIZACIÓN
-            </h1>
-            <p className="text-muted mb-0 fs-5">
+            <img src={img} alt="" style={{ width: "80px" }} />
+            <p className="text-muted mb-0 fs-5 py-3">
               Fecha: {new Date().toLocaleDateString()}
             </p>
           </div>
@@ -157,16 +174,19 @@ export default function Cotizacion() {
             <table className="table table-sm border">
               <thead className="table-dark">
                 <tr>
-                  <th className="text-center" style={{ width: "5%" }}>
+                  <th className="text-center" style={{ width: "1%", fontSize: "14px" }}>
                     #
                   </th>
-                  <th style={{ width: "10%" }}>Cant.</th>
-                  <th style={{ width: "10%" }}>Unid.</th>
-                  <th style={{ width: "40%" }}>Descripción</th>
-                  <th className="text-end" style={{ width: "15%" }}>
+                  <th style={{ width: "2%", fontSize: "14px" }}>Cantidad</th>
+                  <th style={{ width: "14%", fontSize: "14px" }}>Unidad</th>
+                  <th style={{ width: "55%", fontSize: "14px" }}>Descripción</th>
+                  <th className="text-end" style={{ width: "20%" , fontSize: "14px" }}>
                     V. Unit
                   </th>
-                  <th className="text-end" style={{ width: "15%" }}>
+                  <th
+                    className="text-end"
+                    style={{ width: "10%", fontSize: "14px" }}
+                  >
                     Subtotal
                   </th>
                   <th className="no-pdf" style={{ width: "5%" }}></th>
@@ -186,20 +206,18 @@ export default function Cotizacion() {
                           updateItem(sIndex, i, "cantidad", e.target.value)
                         }
                       />
-                      <div className="d-none d-print-block text-center">
-                        {item.cantidad}
-                      </div>
                     </td>
                     <td>
                       <select
+                      style={{fontSize:"11px"}}
                         className="form-select form-select-sm border-0 no-pdf"
                         value={item.unidad}
                         onChange={(e) =>
                           updateItem(sIndex, i, "unidad", e.target.value)
                         }
                       >
-                        <option value="Unid">Unid</option>
-                        <option value="ml">ml</option>
+                        <option value="Unid">U</option>
+                        <option value="ml">m</option>
                         <option value="l">l</option>
                       </select>
                       <div className="d-none d-print-block text-center">
@@ -207,23 +225,18 @@ export default function Cotizacion() {
                       </div>
                     </td>
                     <td>
-                      <textarea
+                      <input
                         className="form-control form-control-sm border-0 no-pdf"
-                        rows={1}
+                        style={{ fontSize: "11px" }}
                         value={item.descripcion}
                         onChange={(e) =>
                           updateItem(sIndex, i, "descripcion", e.target.value)
                         }
                       />
-                      <div
-                        className="d-none d-print-block text-wrap"
-                        style={{ fontSize: "0.9rem" }}
-                      >
-                        {item.descripcion}
-                      </div>
                     </td>
                     <td className="text-end">
                       <input
+                      
                         type="number"
                         className="form-control form-control-sm border-0 no-pdf text-end"
                         value={item.valorUnitario}
@@ -250,27 +263,30 @@ export default function Cotizacion() {
                 ))}
               </tbody>
             </table>
-            <button
-              className="btn btn-sm btn-outline-danger no-pdf"
-              onClick={() => addItem(sIndex)}
-            >
-              + Item
-            </button>
+            <div className="d-flex  gap-3" style={{ width: "300px" }}>
+              <div>
+                <button
+                  className="btn btn-success no-pdf"
+                  onClick={() => addItem(sIndex)}
+                >
+                  Nuevo item
+                </button>
+              </div>
+              <div>
+                <button className="btn btn-primary  " onClick={addSection}>
+                  Nueva Seccion
+                </button>
+              </div>
+            </div>
           </div>
         ))}
 
-        <div className="no-pdf mb-5">
-          <button
-            className="btn btn-outline-dark w-100 fw-bold"
-            onClick={addSection}
-          >
-            + AGREGAR NUEVA SECCIÓN
-          </button>
-        </div>
-
-        <div className="row justify-content-end mt-4">
+        <div className="row justify-content-center mt-4">
           <div className="col-6">
-            <div className="p-3 border-top border-4 border-danger bg-light">
+            <div
+              className="p-3 border-top border-4 border-danger bg-light"
+              style={{ width: "400px" }}
+            >
               <div className="d-flex justify-content-between align-items-center">
                 <span className="fw-bold fs-4">TOTAL GENERAL:</span>
                 <span className="fw-bold fs-4" style={{ color: "#c32121" }}>
@@ -282,16 +298,27 @@ export default function Cotizacion() {
         </div>
 
         <div className="mt-5">
-          <h6 className="fw-bold border-bottom pb-2">NOTAS Y COMENTARIOS</h6>
+          <hr />
+
+          <p>
+            Se cancela el 50% por adelantado y el 25% al estar el 50% de la bora
+            hecha y el otro 25% al terminar
+          </p>
+          <h6 className="fs-4 fw-bold">Nota</h6>
           {comentarios.map((c, i) => (
             <div key={i} className="mb-2">
-              <textarea
-                className="form-control form-control-sm no-pdf"
-                rows={1}
+              <input
+                className=" form-control-sm no-pdf"
+                style={{
+                  width: "300px",
+                  fontSize: "11px",
+                  outline: "none",
+                  border: "none",
+                  borderBottom: "1px solid gray",
+                }}
                 value={c}
                 onChange={(e) => updateComentario(i, e.target.value)}
               />
-              <p className="m-0 d-none d-print-block small text-muted">• {c}</p>
             </div>
           ))}
           <button
